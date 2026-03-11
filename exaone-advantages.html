@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EXAONE Deep 32B — 왜 선택하는가</title>
+<meta property="og:title" content="EXAONE Deep 32B — 왜 선택하는가">
+<meta property="og:description" content="수능 수학 94.5%, MATH-500 95.7%, DeepSeek 대비 파라미터 5% — 공식 벤치마크 기반 EXAONE Deep 32B 장점 분석">
+<meta property="og:image" content="thumbnail.svg">
+<meta property="og:type" content="article">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="thumbnail.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;700;900&family=Noto+Sans+KR:wght@300;400;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --red:    #C8102E;
+    --dark:   #0d0d0d;
+    --ink:    #1a1a1a;
+    --muted:  #555;
+    --line:   #e0e0e0;
+    --bg:     #faf9f7;
+    --card:   #ffffff;
+    --accent: #f5f0e8;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Noto Sans KR', sans-serif;
+    font-weight: 400;
+    line-height: 1.75;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── 헤더 ── */
+  header {
+    background: var(--dark);
+    color: #fff;
+    padding: 80px 40px 60px;
+    position: relative;
+    overflow: hidden;
+  }
+  header::before {
+    content: 'EXAONE';
+    position: absolute;
+    right: -20px; top: 10px;
+    font-family: 'Space Mono', monospace;
+    font-size: 120px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.04);
+    letter-spacing: -4px;
+    line-height: 1;
+    pointer-events: none;
+    user-select: none;
+  }
+  .header-inner { max-width: 860px; margin: 0 auto; position: relative; }
+  .tag {
+    display: inline-block;
+    background: var(--red);
+    color: #fff;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 2px;
+    padding: 4px 12px;
+    border-radius: 2px;
+    margin-bottom: 24px;
+    text-transform: uppercase;
+  }
+  header h1 {
+    font-family: 'Noto Serif KR', serif;
+    font-size: clamp(28px, 5vw, 52px);
+    font-weight: 900;
+    line-height: 1.2;
+    letter-spacing: -1px;
+    margin-bottom: 16px;
+  }
+  header h1 span { color: var(--red); }
+  header p.sub {
+    font-size: 15px;
+    color: rgba(255,255,255,0.55);
+    max-width: 560px;
+    line-height: 1.7;
+  }
+  .header-meta {
+    margin-top: 36px;
+    display: flex;
+    gap: 32px;
+    flex-wrap: wrap;
+  }
+  .header-meta .stat {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .stat-num {
+    font-family: 'Space Mono', monospace;
+    font-size: 28px;
+    font-weight: 700;
+    color: #fff;
+  }
+  .stat-label {
+    font-size: 11px;
+    color: rgba(255,255,255,0.45);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  /* ── 목차 ── */
+  .toc-bar {
+    background: var(--red);
+    color: #fff;
+    padding: 0 40px;
+    display: flex;
+    align-items: center;
+    gap: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .toc-bar::-webkit-scrollbar { display: none; }
+  .toc-bar a {
+    display: block;
+    padding: 14px 20px;
+    font-size: 12px;
+    color: rgba(255,255,255,0.75);
+    text-decoration: none;
+    white-space: nowrap;
+    letter-spacing: 0.5px;
+    transition: color .2s;
+    border-right: 1px solid rgba(255,255,255,0.15);
+  }
+  .toc-bar a:first-child { border-left: 1px solid rgba(255,255,255,0.15); }
+  .toc-bar a:hover { color: #fff; }
+
+  /* ── 메인 레이아웃 ── */
+  main { max-width: 860px; margin: 0 auto; padding: 60px 40px 100px; }
+
+  /* ── 섹션 ── */
+  .section { margin-bottom: 64px; }
+  .section-num {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--red);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .section h2 {
+    font-family: 'Noto Serif KR', serif;
+    font-size: clamp(20px, 3vw, 28px);
+    font-weight: 900;
+    line-height: 1.3;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 2px solid var(--ink);
+  }
+  .section p { font-size: 15px; color: #333; margin-bottom: 14px; }
+  .section p:last-child { margin-bottom: 0; }
+
+  /* ── 벤치마크 카드 ── */
+  .bench-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 12px;
+    margin-top: 24px;
+    margin-bottom: 24px;
+  }
+  .bench-card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 20px 18px 16px;
+    position: relative;
+    overflow: hidden;
+  }
+  .bench-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--red);
+  }
+  .bench-score {
+    font-family: 'Space Mono', monospace;
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--ink);
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+  .bench-name {
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.5px;
+    line-height: 1.4;
+  }
+  .bench-vs {
+    font-size: 10px;
+    color: var(--red);
+    margin-top: 6px;
+    font-weight: 600;
+  }
+
+  /* ── 하이라이트 박스 ── */
+  .highlight {
+    background: var(--accent);
+    border-left: 4px solid var(--red);
+    border-radius: 0 6px 6px 0;
+    padding: 20px 24px;
+    margin: 24px 0;
+    font-size: 15px;
+    line-height: 1.7;
+  }
+  .highlight strong { color: var(--red); }
+
+  /* ── 비교 테이블 ── */
+  .compare-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 24px 0;
+    font-size: 14px;
+  }
+  .compare-table th {
+    background: var(--ink);
+    color: #fff;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 1px;
+    padding: 10px 16px;
+    text-align: left;
+  }
+  .compare-table td {
+    padding: 11px 16px;
+    border-bottom: 1px solid var(--line);
+    vertical-align: middle;
+  }
+  .compare-table tr:last-child td { border-bottom: none; }
+  .compare-table tr:nth-child(even) td { background: #f7f5f2; }
+  .best { color: var(--red); font-weight: 700; }
+
+  /* ── 출처 ── */
+  .sources {
+    margin-top: 20px;
+    padding: 20px 24px;
+    background: #f3f2f0;
+    border-radius: 6px;
+  }
+  .sources p {
+    font-size: 12px !important;
+    color: var(--muted) !important;
+    margin-bottom: 6px !important;
+    line-height: 1.5;
+  }
+  .sources p:last-child { margin-bottom: 0 !important; }
+  .sources a {
+    color: var(--red);
+    text-decoration: none;
+    word-break: break-all;
+  }
+  .sources a:hover { text-decoration: underline; }
+  .sources-title {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 10px;
+    display: block;
+  }
+
+  /* ── 푸터 ── */
+  footer {
+    border-top: 1px solid var(--line);
+    padding: 32px 40px;
+    max-width: 860px;
+    margin: 0 auto;
+    font-size: 12px;
+    color: var(--muted);
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  @media (max-width: 600px) {
+    header { padding: 48px 24px 40px; }
+    main { padding: 40px 24px 80px; }
+    .bench-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<!-- ── 헤더 ── -->
+<header>
+  <div class="header-inner">
+    <span class="tag">AI Model Review · 2025</span>
+    <h1>EXAONE Deep 32B<br><span>왜 선택하는가</span></h1>
+    <p class="sub">LG AI연구원이 개발한 오픈소스 추론 AI 모델 EXAONE Deep 32B의 핵심 강점을 공식 기술 보고서·언론 보도를 바탕으로 정리합니다.</p>
+    <div class="header-meta">
+      <div class="stat">
+        <span class="stat-num">94.5%</span>
+        <span class="stat-label">수능 수학 정답률</span>
+      </div>
+      <div class="stat">
+        <span class="stat-num">95.7%</span>
+        <span class="stat-label">MATH-500</span>
+      </div>
+      <div class="stat">
+        <span class="stat-num">5%</span>
+        <span class="stat-label">DeepSeek R1 대비 파라미터 크기</span>
+      </div>
+      <div class="stat">
+        <span class="stat-num">#1</span>
+        <span class="stat-label">Epoch AI Notable Models</span>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- ── 목차 바 ── -->
+<nav class="toc-bar">
+  <a href="#sec1">① 한국어·이중언어</a>
+  <a href="#sec2">② 실사용 명령 수행</a>
+  <a href="#sec3">③ 장문 맥락 이해</a>
+  <a href="#sec4">④ 추론·수학·코딩</a>
+  <a href="#sec5">⑤ 학습 효율</a>
+  <a href="#sec6">⑥ 경량화 라인업</a>
+  <a href="#sec7">⑦ 로드맵</a>
+  <a href="#sources-all">참고 자료</a>
+</nav>
+
+<!-- ── 본문 ── -->
+<main>
+
+  <!-- 1 -->
+  <div class="section" id="sec1">
+    <div class="section-num">01 / 07</div>
+    <h2>🇰🇷 한국어·이중언어 최강</h2>
+    <p>EXAONE 시리즈는 처음부터 <strong>영어·한국어 동시 지원(Bilingual)</strong>을 핵심 설계 목표로 삼았습니다. GPT·Gemini가 한국어를 영어의 번역 언어로 처리하는 것과 달리, EXAONE은 한국어 문맥·뉘앙스를 독립적으로 이해하는 파운데이션 모델 위에서 학습되었습니다.</p>
+    <div class="highlight">
+      <strong>핵심 포인트:</strong> KoMT-Bench(한국어 MT-Bench)를 비롯한 한국어 평가 지표에서 동급 모델 최고 점수를 기록했으며, 이 한국어 기반이 수능 수학 94.5% 정답률로 직접 이어졌습니다.
+    </div>
+    <div class="sources">
+      <span class="sources-title">참고</span>
+      <p>📄 <a href="https://huggingface.co/LGAI-EXAONE/EXAONE-3.5-32B-Instruct" target="_blank">HuggingFace — EXAONE 3.5 32B Instruct 모델 카드</a></p>
+      <p>📄 <a href="https://arxiv.org/abs/2412.04862" target="_blank">arXiv 2412.04862 — EXAONE 3.5 기술 보고서 (LG AI Research, 2024)</a></p>
+    </div>
+  </div>
+
+  <!-- 2 -->
+  <div class="section" id="sec2">
+    <div class="section-num">02 / 07</div>
+    <h2>📋 실사용 명령 수행력 — 7개 벤치마크 1위</h2>
+    <p>EXAONE 3.5는 Arena-Hard, AlpacaEval, LiveBench, IFEval, MT-Bench, KoMT-Bench, LogicKor 등 <strong>7개 실사용 시나리오 벤치마크 전부에서 동급 최고 성능</strong>을 기록했습니다.</p>
+    <p>단순 지식 회상이 아니라 <em>"실제로 사용자 지시를 얼마나 잘 따르는가"</em>를 측정하는 지표들로, 산업 현장 지시 수행·문서 생성·코드 작성 등 실무 적용성과 직결됩니다.</p>
+    <div class="highlight">
+      <strong>시사점:</strong> 의료·제약 도메인처럼 정확한 지시 이행이 중요한 현장일수록, 실사용 수행력 1위라는 점이 GPT/Gemini 대비 실질적 차별점이 됩니다.
+    </div>
+    <div class="sources">
+      <span class="sources-title">참고</span>
+      <p>📄 <a href="https://arxiv.org/html/2412.04862" target="_blank">arXiv 2412.04862 (Full HTML) — Table 6: Real-world benchmark 비교</a></p>
+    </div>
+  </div>
+
+  <!-- 3 -->
+  <div class="section" id="sec3">
+    <div class="section-num">03 / 07</div>
+    <h2>📄 장문 맥락 이해 — 4개 벤치마크 1위 · 32K 토큰</h2>
+    <p>모든 EXAONE 3.5 모델은 <strong>최대 32,000 토큰의 장문 컨텍스트</strong>를 지원하며, 장문 이해 관련 4개 벤치마크에서 동급 모델 최고 성능을 달성했습니다.</p>
+    <p>이는 긴 임상 시험 보고서, 의약품 설명서, 연구 논문 전문을 한 번에 처리할 수 있음을 의미합니다. 문서를 잘라 여러 번 질의해야 하는 다른 모델 대비 <strong>바이오헬스케어 데이터 분석에 구조적으로 유리</strong>합니다.</p>
+    <div class="sources">
+      <span class="sources-title">참고</span>
+      <p>📄 <a href="https://github.com/LG-AI-EXAONE/EXAONE-3.5" target="_blank">GitHub — EXAONE 3.5 공식 저장소</a></p>
+      <p>📄 <a href="https://arxiv.org/abs/2412.04862" target="_blank">arXiv 2412.04862 — EXAONE 3.5 기술 보고서</a></p>
+    </div>
+  </div>
+
+  <!-- 4 -->
+  <div class="section" id="sec4">
+    <div class="section-num">04 / 07</div>
+    <h2>🧮 추론·수학·코딩 특화 — EXAONE Deep 32B</h2>
+    <p>EXAONE Deep은 EXAONE 3.5를 기반으로 <strong>추론(Reasoning) 능력에 집중 파인튜닝</strong>한 모델로, 2025년 3월 NVIDIA GTC에서 오픈소스로 공개되었습니다. 국내 기업 최초의 추론 특화 AI입니다.</p>
+
+    <div class="bench-grid">
+      <div class="bench-card">
+        <div class="bench-score">94.5%</div>
+        <div class="bench-name">수능 수학 (CSAT 2025)</div>
+        <div class="bench-vs">vs. DeepSeek R1: 89.9%</div>
+      </div>
+      <div class="bench-card">
+        <div class="bench-score">95.7%</div>
+        <div class="bench-name">MATH-500</div>
+        <div class="bench-vs">글로벌 최고 수준</div>
+      </div>
+      <div class="bench-card">
+        <div class="bench-score">72.1%</div>
+        <div class="bench-name">AIME 2024</div>
+        <div class="bench-vs">미국 수학경시대회</div>
+      </div>
+      <div class="bench-card">
+        <div class="bench-score">65.8%</div>
+        <div class="bench-name">AIME 2025</div>
+        <div class="bench-vs">DeepSeek R1과 동급</div>
+      </div>
+      <div class="bench-card">
+        <div class="bench-score">66.1%</div>
+        <div class="bench-name">GPQA Diamond</div>
+        <div class="bench-vs">박사 수준 과학 추론</div>
+      </div>
+      <div class="bench-card">
+        <div class="bench-score">59.5%</div>
+        <div class="bench-name">LiveCodeBench</div>
+        <div class="bench-vs">코딩 능력 평가</div>
+      </div>
+    </div>
+
+    <p>수능 수학에서는 선택과목 미적분·통계·기하 모두에서 <strong>1등급</strong>을 달성했으며, DeepSeek R1(89.9점)을 4.6점 앞섰습니다.</p>
+
+    <table class="compare-table">
+      <thead>
+        <tr>
+          <th>벤치마크</th>
+          <th>EXAONE Deep 32B</th>
+          <th>DeepSeek R1 (670B)</th>
+          <th>QwQ-32B</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>수능 수학 (CSAT 2025)</td>
+          <td class="best">94.5%</td>
+          <td>89.9%</td>
+          <td>—</td>
+        </tr>
+        <tr>
+          <td>MATH-500</td>
+          <td class="best">95.7%</td>
+          <td>97.3%</td>
+          <td>97.1%</td>
+        </tr>
+        <tr>
+          <td>AIME 2025</td>
+          <td>65.8%</td>
+          <td>72.6%</td>
+          <td>79.5%</td>
+        </tr>
+        <tr>
+          <td>GPQA Diamond</td>
+          <td>66.1%</td>
+          <td>71.5%</td>
+          <td>65.2%</td>
+        </tr>
+        <tr>
+          <td>파라미터 수</td>
+          <td class="best">32B</td>
+          <td>671B</td>
+          <td>32B</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="highlight">
+      <strong>핵심:</strong> DeepSeek R1의 <strong>5% 파라미터 규모(32B vs 671B)</strong>만으로 수학·코딩에서 동등하거나 우수한 성능을 냅니다. 서버 인프라 비용이 획기적으로 줄어듭니다.
+    </div>
+
+    <p>미국 비영리 AI 연구기관 <strong>Epoch AI</strong>가 선정하는 "주목할 만한 AI 모델(Notable AI Models)" 리스트에 공개 즉시 등재되며 글로벌 기술 경쟁력을 인정받았습니다.</p>
+
+    <div class="sources">
+      <span class="sources-title">참고</span>
+      <p>📰 <a href="https://zdnet.co.kr/view/?no=20250322134718" target="_blank">지디넷코리아 — LG의 새 AI '엑사원 딥', 수능서 94.5% 정답률…수학·코딩 능력 탁월 (2025.03.22)</a></p>
+      <p>📄 <a href="https://huggingface.co/LGAI-EXAONE/EXAONE-Deep-32B" target="_blank">HuggingFace — EXAONE Deep 32B 모델 카드</a></p>
+      <p>📄 <a href="https://arxiv.org/pdf/2503.12524" target="_blank">arXiv 2503.12524 — EXAONE Deep 기술 보고서 (LG AI Research, 2025)</a></p>
+    </div>
+  </div>
+
+  <!-- 5 -->
+  <div class="section" id="sec5">
+    <div class="section-num">05 / 07</div>
+    <h2>💡 압도적 학습 효율 — Qwen 2.5 대비 연산량 1/2.77</h2>
+    <p>EXAONE 3.5 32B는 <strong>동급 최고 수준의 성능을 가장 낮은 학습 비용으로 달성</strong>한다는 점이 특징입니다. 기술 보고서에 따르면, 동급 모델인 Qwen 2.5 32B가 EXAONE 3.5 32B보다 <strong>2.77배 많은 연산량</strong>을 필요로 합니다.</p>
+    <div class="highlight">
+      <strong>실용적 의미:</strong> 동등 성능을 더 적은 GPU·전력으로 구동할 수 있다는 뜻입니다. 온프레미스 서버 배포, 클라우드 API 비용 모두에서 경쟁 모델 대비 경제적입니다. LG CNS 환경에서 배포·운영 비용 최적화에 유리합니다.
+    </div>
+    <div class="sources">
+      <span class="sources-title">참고</span>
+      <p>📄 <a href="https://arxiv.org/html/2412.04862" target="_blank">arXiv 2412.04862 (Full HTML) — Table 3: Pre-training computation 비교</a></p>
+    </div>
+  </div>
+
+  <!-- 6 -->
+  <div class="section" id="sec6">
+    <div class="section-num">06 / 07</div>
+    <h2>📦 경량화 라인업 — 현장 배포 유연성</h2>
+    <p>EXAONE Deep은 단일 모델이 아니라 <strong>세 가지 크기의 라인업</strong>으로 제공됩니다. 병원 내부 온프레미스부터 모바일 온디바이스까지 환경에 맞게 선택할 수 있습니다.</p>
+    <table class="compare-table">
+      <thead>
+        <tr>
+          <th>모델</th>
+          <th>파라미터</th>
+          <th>32B 대비 성능</th>
+          <th>주요 용도</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>EXAONE Deep 32B</strong></td>
+          <td>320억</td>
+          <td class="best">100% (기준)</td>
+          <td>서버·클라우드 고성능 추론</td>
+        </tr>
+        <tr>
+          <td>EXAONE Deep 7.8B</td>
+          <td>78억 (24% 크기)</td>
+          <td>95% 유지</td>
+          <td>온프레미스 경량 서버</td>
+        </tr>
+        <tr>
+          <td>EXAONE Deep 2.4B</td>
+          <td>24억 (7.5% 크기)</td>
+          <td>86% 유지</td>
+          <td>온디바이스·엣지 디바이스</td>
+        </tr>
+      </tbody>
+    </table>
+    <p>7.8B 모델은 OpenAI o1-mini보다 우수한 성능을 보이며, 상용 추론 API 없이도 자체 인프라에서 구동 가능합니다.</p>
+    <div class="sources">
+      <span class="sources-title">참고</span>
+      <p>📄 <a href="https://github.com/LG-AI-EXAONE/EXAONE-3.5" target="_blank">GitHub — EXAONE 3.5 공식 저장소</a></p>
+      <p>📰 <a href="https://www.getnews.co.kr/news/articleView.html?idxno=812008" target="_blank">겟뉴스 — 챗GPT·딥시크 나와라, LG 엑사원 딥 오픈소스 공개 (2025.03.18)</a></p>
+    </div>
+  </div>
+
+  <!-- 7 -->
+  <div class="section" id="sec7">
+    <div class="section-num">07 / 07</div>
+    <h2>🔜 명확한 업그레이드 로드맵</h2>
+    <p>LG AI연구원은 지속적인 모델 업그레이드를 공개적으로 예고하고 있습니다. EXAONE 3.5 → EXAONE Deep → <strong>EXAONE 4.0</strong> 순으로 이미 공개가 진행 중이며, MoE(Mixture of Experts) 아키텍처를 적용한 <strong>K-EXAONE 236B</strong>도 출시되어 있습니다.</p>
+    <div class="highlight">
+      <strong>협력 관점:</strong> 지금 차의과학대학교와 구축하는 협력 프레임워크는 단발성이 아니라, <strong>EXAONE의 버전업마다 지속적으로 강화</strong>되는 장기 파트너십의 기반이 됩니다.
+    </div>
+    <div class="sources">
+      <span class="sources-title">참고</span>
+      <p>📄 <a href="https://github.com/LG-AI-EXAONE/K-EXAONE" target="_blank">GitHub — K-EXAONE 공식 저장소 (236B MoE 모델)</a></p>
+      <p>📄 <a href="https://huggingface.co/LGAI-EXAONE" target="_blank">HuggingFace — LG AI Research 공식 조직 페이지</a></p>
+    </div>
+  </div>
+
+  <!-- 전체 참고 자료 -->
+  <div class="section" id="sources-all">
+    <div class="section-num">참고 자료 전체</div>
+    <h2>📚 Reference</h2>
+    <div class="sources" style="margin-top:0;">
+      <span class="sources-title">논문 · 기술 보고서</span>
+      <p>📄 <a href="https://arxiv.org/abs/2412.04862" target="_blank">arXiv 2412.04862 — EXAONE 3.5: Series of Large Language Models for Real-world Use Cases (LG AI Research, Dec 2024)</a></p>
+      <p>📄 <a href="https://arxiv.org/html/2412.04862" target="_blank">arXiv 2412.04862 (Full HTML)</a></p>
+      <p>📄 <a href="https://arxiv.org/pdf/2503.12524" target="_blank">arXiv 2503.12524 — EXAONE Deep: Reasoning Enhanced Language Models (LG AI Research, Mar 2025)</a></p>
+    </div>
+    <div class="sources" style="margin-top:12px;">
+      <span class="sources-title">공식 저장소</span>
+      <p>📄 <a href="https://huggingface.co/LGAI-EXAONE/EXAONE-3.5-32B-Instruct" target="_blank">HuggingFace — EXAONE 3.5 32B Instruct</a></p>
+      <p>📄 <a href="https://huggingface.co/LGAI-EXAONE/EXAONE-Deep-32B" target="_blank">HuggingFace — EXAONE Deep 32B</a></p>
+      <p>📄 <a href="https://huggingface.co/LGAI-EXAONE" target="_blank">HuggingFace — LG AI Research 조직 페이지</a></p>
+      <p>📄 <a href="https://github.com/LG-AI-EXAONE/EXAONE-3.5" target="_blank">GitHub — EXAONE 3.5 공식 저장소</a></p>
+      <p>📄 <a href="https://github.com/LG-AI-EXAONE/K-EXAONE" target="_blank">GitHub — K-EXAONE (236B MoE) 공식 저장소</a></p>
+    </div>
+    <div class="sources" style="margin-top:12px;">
+      <span class="sources-title">언론 보도</span>
+      <p>📰 <a href="https://zdnet.co.kr/view/?no=20250322134718" target="_blank">지디넷코리아 — LG의 새 AI '엑사원 딥', 수능서 94.5% 정답률…수학·코딩 능력 탁월 (2025.03.22)</a></p>
+      <p>📰 <a href="https://www.koreadaily.com/article/20250318130037718" target="_blank">미주중앙일보 — 수능 수학 풀어봐…딥시크 90점, LG 엑사원 딥은 95점 (2025.03.18)</a></p>
+      <p>📰 <a href="https://www.khan.co.kr/article/202503182012035" target="_blank">경향신문 — LG AI '엑사원 딥' 수능 성적, 딥시크 눌러 (2025.03.18)</a></p>
+      <p>📰 <a href="https://www.ebn.co.kr/news/articleView.html?idxno=1655430" target="_blank">EBN — 스스로 가설 세워 검증…LG, 추론AI '엑사원 딥' 오픈소스로 공개 (2025.03.18)</a></p>
+      <p>📰 <a href="https://www.insightkorea.co.kr/news/articleView.html?idxno=220437" target="_blank">인사이트코리아 — LG, '엑사원 딥' 오픈소스로 공개…"글로벌 추론 AI 모델과 경쟁" (2025.03.18)</a></p>
+    </div>
+  </div>
+
+</main>
+
+<footer>
+  <span>EXAONE Deep 32B 장점 정리 | CHA University AI Healthcare Convergence Dept.</span>
+  <span>2025.03 · 자료 문의: AI헬스케어융합학과</span>
+</footer>
+
+</body>
+</html>
